@@ -64,7 +64,7 @@ if df is not None:
     visited_ids = get_visited_school_ids(sheet) if sheet else []
 
     if 'مشرف الإدارة المدرسية' in df.columns:
-        st.subheader("اختيار المشرف/ة")
+        st.subheader("مشرفي /ات قسم الإدارة المدرسية")
         supervisors = df['مشرف الإدارة المدرسية'].dropna().unique()
         selected_supervisor = st.selectbox("يرجى اختيار اسم المشرف من القائمة:", ["-- اختر المشرف --"] + list(supervisors))
 
