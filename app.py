@@ -73,7 +73,7 @@ if df is not None:
     if 'مشرف الإدارة المدرسية' in df.columns:
         st.subheader("  بيانات المشرف/ة")
         supervisors = df['مشرف الإدارة المدرسية'].dropna().unique()
-        selected_supervisor = st.selectbox("الرجاء اختيار اسمك من القائمة:", ["-- اختر المشرف --"] + list(supervisors))
+        selected_supervisor = st.selectbox("يرجى اختيار اسم المشرف/ة من القائمة:", ["-- اختر المشرف --"] + list(supervisors))
 
         if selected_supervisor != "-- اختر المشرف --":
             supervisor_schools = df[df['مشرف الإدارة المدرسية'] == selected_supervisor].copy()
