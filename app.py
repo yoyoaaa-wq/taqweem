@@ -22,10 +22,15 @@ st.markdown("""
 def connect_to_gsheet():
     from google.oauth2.service_account import Credentials
     scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    creds = Credentials.from_service_account_file('credentials.json', scopes=scope)
+    
+    # القراءة من خزنة Streamlit السرية بدلاً من ملف credentials.json
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"], 
+        scopes=scope
+    )
+    
     client = gspread.authorize(creds)
     try:
-        # تأكد أن اسم الملف مطابق تماماً لما في جوجل درايف
         return client.open("سجل تقارير الزيارات").sheet1 
     except Exception as e:
         print(f"خطأ في فتح الملف: {e}")
