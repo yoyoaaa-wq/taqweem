@@ -6,7 +6,7 @@ import os
 import traceback
 
 # 1. إعداد الصفحة مع دعم RTL
-st.set_page_config(page_title="  زيارات متابعة حالة التقويم الذاتي للمدارس", page_icon="", layout="wide")
+st.set_page_config(page_title="متابعة حالة المدارس في التقويم المدرسي الذاتي", page_icon="", layout="wide")
 
 st.markdown("""
 <style>
@@ -14,7 +14,7 @@ st.markdown("""
     h1, h2, h3, h4, h5, h6, p, div { text-align: right !important; }
     .stSelectbox > div, .stDateInput > div, .stTextArea > div { direction: rtl; text-align: right; }
     .stAlert { direction: rtl; text-align: right; }
-    .stButton button { display: block; margin: 0 auto; }
+    .stButton button { display: block; margin: 0 auto; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -22,13 +22,10 @@ st.markdown("""
 def connect_to_gsheet():
     from google.oauth2.service_account import Credentials
     scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    
-    # القراءة من خزنة Streamlit السرية بدلاً من ملف credentials.json
     creds = Credentials.from_service_account_info(
         st.secrets["gcp_service_account"], 
         scopes=scope
     )
-    
     client = gspread.authorize(creds)
     try:
         return client.open("سجل تقارير الزيارات").sheet1 
@@ -39,11 +36,8 @@ def connect_to_gsheet():
 # 3. دالة جلب الأرقام الوزارية للمدارس التي تمت زيارتها
 def get_visited_school_ids(sheet):
     try:
-        # جلب جميع بيانات العمود الثاني (الرقم الوزاري) من سجل جوجل شيت
-        # نفترض أن الرقم الوزاري هو العمود الثاني في السجل
         records = sheet.get_all_values()
         if len(records) > 1:
-            # استخراج الأرقام الوزارية من العمود الثاني (index 1) مع تجاهل العنوان
             return [str(row[1]) for row in records[1:]]
         return []
     except:
@@ -59,26 +53,25 @@ def load_school_data():
         return None
 
 # ----------------- واجهة المستخدم -----------------
-st.title("نموذج زيارة مدرسة للتحقق من حالة التقويم الذاتي ")
+st.title("متابعة حالة المدارس في التقويم المدرسي الذاتي")
 st.markdown("**الواجهة المخصصة لمشرفي قسم الإدارة المدرسية**")
 st.markdown("---")
 
 df = load_school_data()
 
 if df is not None:
-    # الاتصال المبدئي لجلب المدارس المزارة
     sheet = connect_to_gsheet()
     visited_ids = get_visited_school_ids(sheet) if sheet else []
 
     if 'مشرف الإدارة المدرسية' in df.columns:
-        st.subheader("  بيانات المشرف/ة")
+        st.subheader("اختيار المشرف/ة")
         supervisors = df['مشرف الإدارة المدرسية'].dropna().unique()
-        selected_supervisor = st.selectbox("يرجى اختيار اسم المشرف/ة من القائمة:", ["-- اختر المشرف --"] + list(supervisors))
+        selected_supervisor = st.selectbox("يرجى اختيار اسم المشرف من القائمة:", ["-- اختر المشرف --"] + list(supervisors))
 
         if selected_supervisor != "-- اختر المشرف --":
             supervisor_schools = df[df['مشرف الإدارة المدرسية'] == selected_supervisor].copy()
             
-            # تمييز المدارس التي تمت زيارتها في القائمة المنسدلة
+            # تمييز المدارس التي تمت زيارتها
             def mark_visited(row):
                 if str(row['رقم وزاري']) in visited_ids:
                     return f"{row['اسم المدرسة']} (تمت الزيارة ✅)"
@@ -91,12 +84,10 @@ if df is not None:
             selected_display_name = st.selectbox("اختر المدرسة التي قمت بزيارتها:", ["-- اختر المدرسة --"] + supervisor_schools['display_name'].tolist())
             
             if selected_display_name != "-- اختر المدرسة --":
-                # استخراج البيانات الأصلية للمدرسة المختارة
                 school_info = supervisor_schools[supervisor_schools['display_name'] == selected_display_name].iloc[0]
                 school_id = school_info['رقم وزاري']
                 original_school_name = school_info['اسم المدرسة']
                 
-                # تنبيه إذا كانت المدرسة مزارة مسبقاً
                 if str(school_id) in visited_ids:
                     st.warning("⚠️ تنبيه: هذه المدرسة تم رفع تقرير زيارة لها مسبقاً.")
 
@@ -104,42 +95,54 @@ if df is not None:
                 
                 st.markdown("---")
                 st.subheader(" بنود الزيارة")
-                with st.form("report_form", clear_on_submit=True):
-                    col1, col2 = st.columns(2)
-                    with col2:
-                        visit_date = st.date_input("تاريخ الزيارة", datetime.date.today())
-                    with col1:
-                        status = st.selectbox("حالة المدرسة في التقويم الذاتي", ["لم تبدأ في التقويم الذاتي", "بدأت التقويم الذاتي ولم تنتهي منه", "أنهت التقويم الذاتي وبإنتظار صدور التقرير"])
-                    
-                    justifications = st.text_area("المبررات *")
-                    required_support = st.text_area("الدعم المطلوب *")
-                    
+                
+                col1, col2 = st.columns(2)
+                with col2:
+                    visit_date = st.date_input("تاريخ الزيارة", datetime.date.today())
+                with col1:
+                    status = st.selectbox("حالة المدرسة في التقويم الذاتي", ["لم تبدأ التقويم الذاتي", "بدأت التقويم الذاتي ولم تنتهي", "أنهت التقويم الذاتي وبإنتظار صدور التقرير"])
+                
+                # --- المنطق الشرطي الذكي لصندوقي المبررات والدعم ---
+                if status in ["لم تبدأ التقويم الذاتي", "بدأت التقويم الذاتي ولم تنتهي"]:
+                    justifications = st.text_area("مبررات عدم الإنتهاء من التقويم الذاتي *", placeholder="اكتب أسباب عدم الانتهاء من التقويم الذاتي هنا...")
+                    required_support = st.text_area("الدعم المطلوب *", placeholder="حدد نوع الدعم الذي تحتاجه المدرسة لإكمال التقويم...")
+                    needs_inputs = True
+                else:
+                    st.success("✨ جميل..! بما أن المدرسة (أنهت) عملية التقويم الذاتي، يمكنك الحفظ وإرسال تقرير الزيارة.")
+                    justifications = "أنهت المدرسة التقويم الذاتي ولا يوجد مبررات."
+                    required_support = "أنهت المدرسة التقويم الذاتي ولا يوجد دعم مطلوب."
+                    needs_inputs = False
+                
+                # إظهار ملاحظة الحقول الإلزامية فقط إذا كانت الحقول ظاهرة
+                if needs_inputs:
                     st.caption("* الحقول المشار إليها بعلامة نجمة هي حقول إلزامية")
-                    submit = st.form_submit_button("حفظ التقرير وإرساله", use_container_width=True)
                     
-                    if submit:
-                        # التحقق من إلزامية الحقول
-                        if not justifications.strip() or not required_support.strip():
-                            st.error("❌ عذراً، يجب تعبئة حقول (المبررات) و (الدعم المطلوب) قبل الحفظ.")
-                        else:
-                            try:
-                                if sheet:
-                                    row_to_add = [
-                                        selected_supervisor, 
-                                        str(school_id), 
-                                        original_school_name, 
-                                        str(visit_date), 
-                                        status, 
-                                        justifications, 
-                                        required_support
-                                    ]
-                                    sheet.append_row(row_to_add)
-                                    st.success(f"✅ تم حفظ تقرير مدرسة {original_school_name} بنجاح.")
-                                    # تحديث الصفحة لمشاهدة علامة الصح فوراً
-                                    st.cache_data.clear()
-                                else:
-                                    st.error("❌ فشل الاتصال بالسجل السحابي.")
-                            except Exception as e:
-                                st.error(f"حدث خطأ أثناء الحفظ: {e}")
+                submit = st.button("إرسال التقرير", use_container_width=True, type="primary")
+                
+                if submit:
+                    # التحقق من إلزامية الحقول فقط إذا كانت المدرسة لم تنهِ التقويم
+                    if needs_inputs and (not justifications.strip() or not required_support.strip()):
+                        st.error("❌ عذراً، يجب تعبئة حقلي (المبررات) و (الدعم المطلوب) لأن المدرسة لم تنهِ التقويم الذاتي بعد.")
+                    else:
+                        try:
+                            if sheet:
+                                row_to_add = [
+                                    selected_supervisor, 
+                                    str(school_id), 
+                                    original_school_name, 
+                                    str(visit_date), 
+                                    status, 
+                                    justifications, 
+                                    required_support
+                                ]
+                                sheet.append_row(row_to_add)
+                                st.success(f"✅ تم حفظ تقرير مدرسة {original_school_name} بنجاح.")
+                                st.balloons() 
+                                st.cache_data.clear()
+                            else:
+                                st.error("❌ فشل الاتصال بالسجل السحابي.")
+                        except Exception as e:
+                            traceback.print_exc()
+                            st.error(f"حدث خطأ أثناء الحفظ: {e}")
     else:
         st.error("لم يتم العثور على عمود المشرفين في ملف البيانات.")
