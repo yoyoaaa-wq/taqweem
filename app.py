@@ -109,7 +109,7 @@ if df is not None:
                     with col2:
                         visit_date = st.date_input("تاريخ الزيارة", datetime.date.today())
                     with col1:
-                        status = st.selectbox("حالة المدرسة في التقويم الذاتي", ["لم تبدأ في التقويم الذاتي", "بدأت القؤويم الذاتي ولم تنتهي منه", "أنهت التقويم الذاتي وبإنتظار صدور التقرير"])
+                        status = st.selectbox("حالة المدرسة في التقويم الذاتي", ["لم تبدأ في التقويم الذاتي", "بدأت التقويم الذاتي ولم تنتهي منه", "أنهت التقويم الذاتي وبإنتظار صدور التقرير"])
                     
                     justifications = st.text_area("المبررات *")
                     required_support = st.text_area("الدعم المطلوب *")
